@@ -16,7 +16,7 @@
         const { useState, useEffect } = React;
         
         // ⚠️ REPLACE THIS WITH YOUR GOOGLE SHEETS WEB APP URL ⚠️
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbztLF-sgkoIDR3enbCFH-LeaRXyVxDmKllaIKX73Ssi4rlOVAYOyYSBTzAEY80k5vgMfg/execE";
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbztLF-sgkoIDR3enbCFH-LeaRXyVxDmKllaIKX73Ssi4rlOVAYOyYSBTzAEY80k5vgMfg/exec";
         
         // Admin password - CHANGE THIS to your own secure password
         const ADMIN_PASSWORD = "1123581321";
@@ -88,8 +88,8 @@
           const loadSettings = async () => {
             if (GOOGLE_SHEETS_URL === "YOUR_WEB_APP_URL_HERE") {
               // Set defaults if no URL configured
-              setAdminDate('15/01/2025');
-              setTimeSlots({'09:00':2,'10:00':2,'11:00':2,'12:00':2,'13:00':2,'14:00':2,'15:00':2,'16:00':1,'17:00':1,'18:00':1,'19:00':1,'20:00':2,'21:00':2});
+              setAdminDate('15/01/2025'); // FIXED DATE
+              setTimeSlots({'09:00': 2, '10:00': 2, '11:00': 2, '12:00': 2, '13:00': 2, '14:00': 2, '15:00': 2, '16:00': 1, '17:00': 1, '18:00': 1, '19:00': 1, '20:00': 2, '21:00': 2});
               setGdprText('Δηλώνω την σαφή και ανεπιφύλακτη συγκατάθεση μου στην Ειρήνη Τουρλεντέ του Παναγιώτη (So Ham - Yoga & Pranic Healing) για τη συλλογή, τήρηση κι επεξεργασία των ανωτέρω δεδομένων μου, για την προς εμένα αποστολή ενημερωτικού mail με επιλεγμένες εκδηλώσεις και διδακτικά σεμινάρια του. Δηλώνω, επίσης, ότι ενημερώθηκα για την ύπαρξη δικαιώματος ανάκλησης της ως άνω χορηγηθείσας συγκατάθεσής μου ή διόρθωσης αυτών με την αποστολή αντίστοιχου mail στην ηλεκτρονική διεύθυνση sohamgreece@gmail.com Τα ως άνω δεδομένα θα διατηρηθούν μέχρι την ρητή ανάκληση της συγκατάθεσης.Υπάρχει δικαίωμα υποβολής καταγγελίας στην αρμόδια εποπτική αρχή. Υπεύθυνος επεξεργασίας: Ειρήνη Τουρλεντέ του Παναγιώτη (So Ham - Yoga & Pranic Healing).');
               setSettingsLoaded(true);
               return;
@@ -103,10 +103,9 @@
               
               // Only update if we received valid data
               if (data && Object.keys(data).length > 0) {
-                if (data.adminDate) {
-                  console.log('Setting adminDate to:', data.adminDate);
-                  setAdminDate(data.adminDate);
-                }
+                // ALWAYS USE FIXED DATE - ignore what's in sheets
+                setAdminDate('15/01/2025');
+                
                 if (data.timeSlots) {
                   console.log('Setting timeSlots to:', data.timeSlots);
                   setTimeSlots(data.timeSlots);
@@ -119,7 +118,7 @@
                 // No settings in sheet, use defaults
                 console.log('No settings in sheet, using defaults');
                 setAdminDate('15/01/2025');
-                setTimeSlots({'09:00':2,'10:00':2,'11:00':2,'12:00':2,'13:00':2,'14:00':2,'15:00':2,'16:00':1,'17:00':1,'18:00':1,'19:00':1,'20:00':2,'21:00':2});
+                setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
                 setGdprText('Αποδέχομαι τους όρους GDPR');
               }
               setSettingsLoaded(true);
@@ -127,7 +126,7 @@
               console.error('Error loading settings:', error);
               // Use defaults on error
               setAdminDate('15/01/2025');
-              setTimeSlots({'09:00':2,'10:00':2,'11:00':2,'12:00':2,'13:00':2,'14:00':2,'15:00':2,'16:00':1,'17:00':1,'18:00':1,'19:00':1,'20:00':2,'21:00':2});
+              setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
               setGdprText('Αποδέχομαι τους όρους GDPR');
               setSettingsLoaded(true);
             }
@@ -150,7 +149,7 @@
                 },
                 body: JSON.stringify({
                   action: 'saveSettings',
-                  adminDate: adminDate,
+                  adminDate: '15/01/2025', // FIXED DATE - always save this
                   timeSlots: timeSlots,
                   gdprText: gdprText
                 })
@@ -486,19 +485,12 @@
 
                         <div className="mb-6 pb-6 border-b border-gray-200">
                           <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                            Booking Date
+                            Booking Date (Fixed)
                           </label>
-                          <input
-                            type="date"
-                            value={toISOFormat(adminDate)}
-                            onChange={(e) => {
-                              setAdminDate(toDisplayFormat(e.target.value));
-                              setSelectedTime('');
-                            }}
-                            min={minDate}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">Current: {adminDate}</p>
+                          <div className="bg-gray-100 px-3 py-2 rounded-lg text-gray-700 font-medium text-sm">
+                            15/01/2025
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">Date is fixed and cannot be changed</p>
                         </div>
 
                         <div className="mb-6 pb-6 border-b border-gray-200">
