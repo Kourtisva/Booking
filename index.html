@@ -37,17 +37,10 @@
           const [reservations, setReservations] = useState([]);
           const [showAdmin, setShowAdmin] = useState(false);
           const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-          const [adminDate, setAdminDate] = useState('2025-12-01');
-          const [timeSlots, setTimeSlots] = useState({
-            '16:00': 2,
-            '17:00': 2,
-            '18:00': 2,
-            '19:00': 2,
-            '20:00': 2,
-            '21:00': 1
-          });
+          const [adminDate, setAdminDate] = useState('');
+          const [timeSlots, setTimeSlots] = useState({});
           const [newSlotTime, setNewSlotTime] = useState('');
-          const [gdprText, setGdprText] = useState('Δηλώνω την σαφή και ανεπιφύλακτη συγκατάθεση μου στην Ειρήνη Τουρλεντέ του Παναγιώτη (So Ham - Yoga & Pranic Healing) για τη συλλογή, τήρηση κι επεξεργασία των ανωτέρω δεδομένων μου, για την προς εμένα αποστολή ενημερωτικού mail με επιλεγμένες εκδηλώσεις και διδακτικά σεμινάρια του. Δηλώνω, επίσης, ότι ενημερώθηκα για την ύπαρξη δικαιώματος ανάκλησης της ως άνω χορηγηθείσας συγκατάθεσής μου ή διόρθωσης αυτών με την αποστολή αντίστοιχου mail στην ηλεκτρονική διεύθυνση sohamgreece@gmail.com Τα ως άνω δεδομένα θα διατηρηθούν μέχρι την ρητή ανάκληση της συγκατάθεσης.Υπάρχει δικαίωμα υποβολής καταγγελίας στην αρμόδια εποπτική αρχή. Υπεύθυνος επεξεργασίας: Ειρήνη Τουρλεντέ του Παναγιώτη (So Ham - Yoga & Pranic Healing).');
+          const [gdprText, setGdprText] = useState('');
           const [settingsLoaded, setSettingsLoaded] = useState(false);
           
           // Loading state
@@ -65,9 +58,10 @@
             
             try {
               setLoading(true);
-              const response = await fetch(GOOGLE_SHEETS_URL + '?action=getBookings');
+              const response = await fetch(GOOGLE_SHEETS_URL + '?action=getBookings&t=' + Date.now());
               const data = await response.json();
               if (data.bookings) {
+                console.log('Loaded bookings:', data.bookings);
                 setReservations(data.bookings);
               }
             } catch (error) {
@@ -80,31 +74,48 @@
           // Load settings from Google Sheets
           const loadSettings = async () => {
             if (GOOGLE_SHEETS_URL === "YOUR_WEB_APP_URL_HERE") {
+              // Set defaults if no URL configured
+              setAdminDate('2025-12-01');
+              setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
+              setGdprText('Αποδέχομαι τους όρους GDPR');
               setSettingsLoaded(true);
               return;
             }
             
             try {
               console.log('Loading settings from Google Sheets...');
-              const response = await fetch(GOOGLE_SHEETS_URL + '?action=getSettings');
+              const response = await fetch(GOOGLE_SHEETS_URL + '?action=getSettings&t=' + Date.now());
               const data = await response.json();
-              console.log('Settings loaded:', data);
+              console.log('Settings received from Sheets:', data);
               
-              if (data.adminDate) {
-                console.log('Setting adminDate to:', data.adminDate);
-                setAdminDate(data.adminDate);
-              }
-              if (data.timeSlots) {
-                console.log('Setting timeSlots to:', data.timeSlots);
-                setTimeSlots(data.timeSlots);
-              }
-              if (data.gdprText) {
-                console.log('Setting gdprText to:', data.gdprText);
-                setGdprText(data.gdprText);
+              // Only update if we received valid data
+              if (data && Object.keys(data).length > 0) {
+                if (data.adminDate) {
+                  console.log('Setting adminDate to:', data.adminDate);
+                  setAdminDate(data.adminDate);
+                }
+                if (data.timeSlots) {
+                  console.log('Setting timeSlots to:', data.timeSlots);
+                  setTimeSlots(data.timeSlots);
+                }
+                if (data.gdprText) {
+                  console.log('Setting gdprText to:', data.gdprText);
+                  setGdprText(data.gdprText);
+                }
+              } else {
+                // No settings in sheet, use defaults
+                console.log('No settings in sheet, using defaults');
+                setAdminDate('2025-12-01');
+                setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
+                setGdprText('Αποδέχομαι τους όρους GDPR');
               }
               setSettingsLoaded(true);
             } catch (error) {
               console.error('Error loading settings:', error);
+              // Use defaults on error
+              setAdminDate('2025-12-01');
+              setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
+              setGdprText('Αποδέχομαι τους όρους GDPR');
               setSettingsLoaded(true);
             }
           };
@@ -142,32 +153,41 @@
 
           // Load settings and bookings on mount - ONLY ONCE
           useEffect(() => {
-            loadSettings();
-            loadBookings();
+            const init = async () => {
+              await loadSettings();
+              await loadBookings();
+            };
+            init();
           }, []);
 
-          // Auto-refresh bookings ONLY when admin panel is open and viewing reservations
-          useEffect(() => {
-            let interval;
-            if (showAdmin && isAdminAuthenticated) {
-              interval = setInterval(() => {
-                loadBookings();
-              }, 10000); // Refresh every 10 seconds when admin is open
-            }
-            return () => {
-              if (interval) clearInterval(interval);
-            };
-          }, [showAdmin, isAdminAuthenticated]);
+          // REMOVED auto-refresh - only manual refresh via button
+          // No more automatic refreshing that causes the form to reload
 
           const getAvailableSlots = () => {
             const available = [];
+            console.log('Calculating available slots for date:', adminDate);
+            console.log('Current timeSlots:', timeSlots);
+            console.log('Current reservations:', reservations);
+            
             Object.keys(timeSlots).forEach(time => {
-              const booked = reservations.filter(res => res.date === adminDate && res.time === time).length;
+              const booked = reservations.filter(res => {
+                // Make sure both dates are strings and match exactly
+                const resDate = typeof res.date === 'string' ? res.date : '';
+                const matchesDate = resDate === adminDate;
+                const matchesTime = res.time === time;
+                console.log(`Checking: ${time} - Date match: ${matchesDate} (${resDate} vs ${adminDate}), Time match: ${matchesTime}`);
+                return matchesDate && matchesTime;
+              }).length;
+              
               const capacity = timeSlots[time];
+              console.log(`Time ${time}: ${booked} booked out of ${capacity} capacity`);
+              
               if (booked < capacity) {
                 available.push({ time, booked, capacity });
               }
             });
+            
+            console.log('Available slots:', available);
             return available.sort((a, b) => a.time.localeCompare(b.time));
           };
 
