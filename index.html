@@ -178,29 +178,36 @@
 
           const getAvailableSlots = () => {
             const available = [];
-            console.log('Calculating available slots for date:', adminDate);
-            console.log('Current timeSlots:', timeSlots);
-            console.log('Current reservations:', reservations);
+            console.log('=== CALCULATING AVAILABLE SLOTS ===');
+            console.log('Admin Date:', adminDate);
+            console.log('Time Slots:', timeSlots);
+            console.log('All Reservations:', reservations);
+            
+            // Filter reservations for this specific date
+            const reservationsForDate = reservations.filter(res => {
+              const match = res.date === adminDate;
+              console.log(`Reservation: ${res.firstName} ${res.lastName} - Date: "${res.date}" vs Admin: "${adminDate}" - Match: ${match}`);
+              return match;
+            });
+            
+            console.log('Reservations for this date:', reservationsForDate);
             
             Object.keys(timeSlots).forEach(time => {
-              const booked = reservations.filter(res => {
-                // Make sure both dates are strings and match exactly
-                const resDate = typeof res.date === 'string' ? res.date : '';
-                const matchesDate = resDate === adminDate;
-                const matchesTime = res.time === time;
-                console.log(`Checking: ${time} - Date match: ${matchesDate} (${resDate} vs ${adminDate}), Time match: ${matchesTime}`);
-                return matchesDate && matchesTime;
-              }).length;
-              
+              const bookedCount = reservationsForDate.filter(res => res.time === time).length;
               const capacity = timeSlots[time];
-              console.log(`Time ${time}: ${booked} booked out of ${capacity} capacity`);
+              const available_spaces = capacity - bookedCount;
               
-              if (booked < capacity) {
-                available.push({ time, booked, capacity });
+              console.log(`Time ${time}: Capacity=${capacity}, Booked=${bookedCount}, Available=${available_spaces}`);
+              
+              if (bookedCount < capacity) {
+                available.push({ time, booked: bookedCount, capacity });
+              } else {
+                console.log(`  -> FULLY BOOKED, NOT SHOWING`);
               }
             });
             
-            console.log('Available slots:', available);
+            console.log('Final available slots:', available);
+            console.log('=== END CALCULATION ===');
             return available.sort((a, b) => a.time.localeCompare(b.time));
           };
 
@@ -349,7 +356,7 @@
 
                       {submitted ? (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                          <p className="text-green-800 font-semibold">✓ Η κράτηση έγινε!</p>
+                          <p className="text-green-800 font-semibold">✓ Η εγγραφή έγινε!</p>
                           <p className="text-green-700 text-sm mt-2">
                             Ευχαριστούμε
                           </p>
