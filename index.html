@@ -39,18 +39,19 @@
           const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
           const [adminDate, setAdminDate] = useState('2025-12-01');
           const [timeSlots, setTimeSlots] = useState({
-            '16:00': 2,
-            '17:00': 2,
-            '18:00': 2,
-            '19:00': 2,
-            '20:00': 2,
-            '21:00': 1
+            '09:00': 3,
+            '09:30': 3,
+            '10:00': 3,
+            '14:00': 2,
+            '14:30': 2
           });
           const [newSlotTime, setNewSlotTime] = useState('');
-          const [gdprText, setGdprText] = useState('Δηλώνω την σαφή και ανεπιφύλακτη συγκατάθεση μου στην Ειρήνη Τουρλεντέ του Παναγιώτη (So Ham - Yoga & Pranic Healing) για τη συλλογή, τήρηση κι επεξεργασία των ανωτέρω δεδομένων μου, για την προς εμένα αποστολή ενημερωτικού mail με επιλεγμένες εκδηλώσεις και διδακτικά σεμινάρια του. Δηλώνω, επίσης, ότι ενημερώθηκα για την ύπαρξη δικαιώματος ανάκλησης της ως άνω χορηγηθείσας συγκατάθεσής μου ή διόρθωσης αυτών με την αποστολή αντίστοιχου mail στην ηλεκτρονική διεύθυνση sohamgreece@gmail.com Τα ως άνω δεδομένα θα διατηρηθούν μέχρι την ρητή ανάκληση της συγκατάθεσης.Υπάρχει δικαίωμα υποβολής καταγγελίας στην αρμόδια εποπτική αρχή. Υπεύθυνος επεξεργασίας: Ειρήνη Τουρλεντέ του Παναγιώτη (So Ham - Yoga & Pranic Healing).');
+          const [gdprText, setGdprText] = useState('Αποδέχομαι τους όρους GDPR');
+          const [settingsLoaded, setSettingsLoaded] = useState(false);
           
           // Loading state
           const [loading, setLoading] = useState(false);
+          const [savingSettings, setSavingSettings] = useState(false);
 
           const minDate = new Date().toISOString().split('T')[0];
 
@@ -78,6 +79,7 @@
           // Load settings from Google Sheets
           const loadSettings = async () => {
             if (GOOGLE_SHEETS_URL === "YOUR_WEB_APP_URL_HERE") {
+              setSettingsLoaded(true);
               return;
             }
             
@@ -87,18 +89,22 @@
               if (data.adminDate) setAdminDate(data.adminDate);
               if (data.timeSlots) setTimeSlots(data.timeSlots);
               if (data.gdprText) setGdprText(data.gdprText);
+              setSettingsLoaded(true);
             } catch (error) {
               console.error('Error loading settings:', error);
+              setSettingsLoaded(true);
             }
           };
 
-          // Save settings to Google Sheets
+          // Save settings to Google Sheets - only when button clicked
           const saveSettings = async () => {
             if (GOOGLE_SHEETS_URL === "YOUR_WEB_APP_URL_HERE") {
+              alert("Please configure Google Sheets URL");
               return;
             }
             
             try {
+              setSavingSettings(true);
               await fetch(GOOGLE_SHEETS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -112,8 +118,12 @@
                   gdprText: gdprText
                 })
               });
+              alert('Settings saved successfully!');
             } catch (error) {
               console.error('Error saving settings:', error);
+              alert('Error saving settings');
+            } finally {
+              setSavingSettings(false);
             }
           };
 
@@ -123,22 +133,15 @@
             loadBookings();
           }, []);
 
-          // Save admin settings to Google Sheets when they change
+          // Reload bookings periodically when admin panel is open
           useEffect(() => {
-            if (adminDate !== '2025-12-01') {
-              saveSettings();
+            if (showAdmin) {
+              const interval = setInterval(() => {
+                loadBookings();
+              }, 5000); // Refresh every 5 seconds
+              return () => clearInterval(interval);
             }
-          }, [adminDate]);
-
-          useEffect(() => {
-            saveSettings();
-          }, [timeSlots]);
-
-          useEffect(() => {
-            if (gdprText !== 'Αποδέχομαι τους όρους GDPR') {
-              saveSettings();
-            }
-          }, [gdprText]);
+          }, [showAdmin]);
 
           const getAvailableSlots = () => {
             const available = [];
@@ -502,6 +505,18 @@
                               Add
                             </button>
                           </div>
+                        </div>
+
+                        {/* Save Settings Button */}
+                        <div className="mb-6 pb-6 border-b border-gray-200">
+                          <button
+                            onClick={saveSettings}
+                            disabled={savingSettings || !settingsLoaded}
+                            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded text-sm transition-colors"
+                          >
+                            {savingSettings ? 'Saving...' : 'Save Settings'}
+                          </button>
+                          <p className="text-xs text-gray-500 mt-2 text-center">Click to save date, time slots, and GDPR text</p>
                         </div>
 
                         <div>
