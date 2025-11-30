@@ -49,6 +49,19 @@
 
           const minDate = new Date().toISOString().split('T')[0];
 
+          // Helper functions to convert between yyyy-MM-dd and dd/MM/yyyy
+          const toDisplayFormat = (isoDate) => {
+            if (!isoDate) return '';
+            const [year, month, day] = isoDate.split('-');
+            return `${day}/${month}/${year}`;
+          };
+
+          const toISOFormat = (displayDate) => {
+            if (!displayDate) return '';
+            const [day, month, year] = displayDate.split('/');
+            return `${year}-${month}-${day}`;
+          };
+
           // Load bookings from Google Sheets
           const loadBookings = async () => {
             if (GOOGLE_SHEETS_URL === "YOUR_WEB_APP_URL_HERE") {
@@ -75,7 +88,7 @@
           const loadSettings = async () => {
             if (GOOGLE_SHEETS_URL === "YOUR_WEB_APP_URL_HERE") {
               // Set defaults if no URL configured
-              setAdminDate('2025-12-01');
+              setAdminDate(toDisplayFormat('2025-12-01'));
               setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
               setGdprText('Αποδέχομαι τους όρους GDPR');
               setSettingsLoaded(true);
@@ -92,7 +105,7 @@
               if (data && Object.keys(data).length > 0) {
                 if (data.adminDate) {
                   console.log('Setting adminDate to:', data.adminDate);
-                  setAdminDate(data.adminDate);
+                  setAdminDate(data.adminDate); // Already in dd/MM/yyyy format
                 }
                 if (data.timeSlots) {
                   console.log('Setting timeSlots to:', data.timeSlots);
@@ -105,7 +118,7 @@
               } else {
                 // No settings in sheet, use defaults
                 console.log('No settings in sheet, using defaults');
-                setAdminDate('2025-12-01');
+                setAdminDate(toDisplayFormat('2025-12-01'));
                 setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
                 setGdprText('Αποδέχομαι τους όρους GDPR');
               }
@@ -113,7 +126,7 @@
             } catch (error) {
               console.error('Error loading settings:', error);
               // Use defaults on error
-              setAdminDate('2025-12-01');
+              setAdminDate(toDisplayFormat('2025-12-01'));
               setTimeSlots({'09:00': 3, '09:30': 3, '10:00': 3, '14:00': 2, '14:30': 2});
               setGdprText('Αποδέχομαι τους όρους GDPR');
               setSettingsLoaded(true);
@@ -203,7 +216,7 @@
               try {
                 setLoading(true);
                 
-                // Send to Google Sheets
+                // Send to Google Sheets with dd/MM/yyyy format
                 await fetch(GOOGLE_SHEETS_URL, {
                   method: 'POST',
                   mode: 'no-cors',
@@ -216,7 +229,7 @@
                     lastName: formData.lastName,
                     email: formData.email,
                     phone: formData.phone,
-                    date: adminDate,
+                    date: adminDate, // Send as dd/MM/yyyy
                     time: selectedTime
                   })
                 });
@@ -470,14 +483,15 @@
                           </label>
                           <input
                             type="date"
-                            value={adminDate}
+                            value={toISOFormat(adminDate)}
                             onChange={(e) => {
-                              setAdminDate(e.target.value);
+                              setAdminDate(toDisplayFormat(e.target.value));
                               setSelectedTime('');
                             }}
                             min={minDate}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
                           />
+                          <p className="text-xs text-gray-500 mt-1">Date format: dd/MM/yyyy</p>
                         </div>
 
                         <div className="mb-6 pb-6 border-b border-gray-200">
